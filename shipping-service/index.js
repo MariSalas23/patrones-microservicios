@@ -1,6 +1,8 @@
 const kafka = require("./kafka");
 const { pool, initDB } = require("./db");
+const express = require("express");
 
+const app = express();
 const consumer = kafka.consumer({ groupId: "shipping-group" });
 const producer = kafka.producer();
 
@@ -30,6 +32,11 @@ async function start() {
       console.log("ShipmentCreated:", evt.orderId);
     },
   });
+
+  app.get("/", (req, res) => res.send("Shipping OK"));
+
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log("Shipping on", PORT));
 }
 
 start();

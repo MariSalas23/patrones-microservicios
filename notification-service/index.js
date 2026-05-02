@@ -1,5 +1,7 @@
 const kafka = require("./kafka");
+const express = require("express");
 
+const app = express();
 const consumer = kafka.consumer({ groupId: "notification-group" });
 
 async function start() {
@@ -14,6 +16,11 @@ async function start() {
       console.log(`${topic}:`, message.value.toString());
     },
   });
+
+  app.get("/", (req, res) => res.send("Notification OK"));
+
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log("Notification on", PORT));
 }
 
 start();
