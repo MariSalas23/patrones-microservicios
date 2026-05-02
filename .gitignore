@@ -1,0 +1,42 @@
+# 🔹 Node modules
+node_modules/
+
+# 🔹 Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 🔹 Environment variables (MUY IMPORTANTE)
+.env
+
+# 🔹 Build / output
+dist/
+build/
+
+# 🔹 OS files
+.DS_Store
+Thumbs.db
+
+# 🔹 IDEs
+.vscode/
+.idea/
+
+# 🔹 Coverage
+coverage/
+
+# 🔹 Kafka local (si usas Docker volúmenes)
+kafka-data/
+zookeeper-data/
+
+# 🔹 PostgreSQL (si usas volúmenes)
+postgres-data/
+
+# 🔹 Temporary files
+tmp/
+temp/
+
+# 🔹 Optional: lock files (puedes dejar o quitar)
+package-lock.json
+yarn.lock
