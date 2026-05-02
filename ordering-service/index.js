@@ -1,12 +1,39 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const kafka = require("./kafka");
-const { pool, initDB } = require("./db");
+const { Kafka } = require("kafkajs");
+const { Pool } = require("pg");
 
 const app = express();
 app.use(express.json());
 
+const kafka = new Kafka({
+  clientId: "ordering-service",
+  brokers: [process.env.KAFKA_BROKER],
+  ssl: true,
+  sasl: {
+    mechanism: "plain",
+    username: process.env.KAFKA_API_KEY,
+    password: process.env.KAFKA_API_SECRET,
+  },
+});
+
 const producer = kafka.producer();
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id VARCHAR(50) PRIMARY KEY,
+      user_id VARCHAR(50),
+      email VARCHAR(100)
+    );
+  `);
+  console.log("DB ready (ordering)");
+}
 
 async function start() {
   await initDB();
@@ -17,7 +44,7 @@ async function start() {
     const orderId = uuidv4();
 
     await pool.query(
-      "INSERT INTO orders (id, user_id, email) VALUES ($1, $2, $3)",
+      "INSERT INTO orders (id, user_id, email) VALUES ($1,$2,$3)",
       [orderId, userId, email]
     );
 
@@ -29,6 +56,8 @@ async function start() {
     console.log("OrderCreated:", orderId);
     res.json({ orderId });
   });
+
+  app.get("/", (req, res) => res.send("Ordering OK"));
 
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => console.log("Ordering on", PORT));

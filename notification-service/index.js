@@ -1,7 +1,19 @@
-const kafka = require("./kafka");
 const express = require("express");
+const { Kafka } = require("kafkajs");
 
 const app = express();
+
+const kafka = new Kafka({
+  clientId: "notification-service",
+  brokers: [process.env.KAFKA_BROKER],
+  ssl: true,
+  sasl: {
+    mechanism: "plain",
+    username: process.env.KAFKA_API_KEY,
+    password: process.env.KAFKA_API_SECRET,
+  },
+});
+
 const consumer = kafka.consumer({ groupId: "notification-group" });
 
 async function start() {
@@ -13,7 +25,7 @@ async function start() {
 
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
-      console.log(`${topic}:`, message.value.toString());
+      console.log(topic, message.value.toString());
     },
   });
 
