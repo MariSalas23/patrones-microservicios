@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const kafka = require("../shared/kafka");
+const kafka = require("./kafka")
 const { commercialDB, initDB } = require("../shared/db");
 
 const app = express();

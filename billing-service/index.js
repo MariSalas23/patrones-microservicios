@@ -1,5 +1,5 @@
 require("dotenv").config();
-const kafka = require("../shared/kafka");
+const kafka = require("./kafka")
 const { commercialDB, initDB } = require("../shared/db");
 
 const consumer = kafka.consumer({ groupId: "billing-group" });
