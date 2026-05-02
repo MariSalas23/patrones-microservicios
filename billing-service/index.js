@@ -1,5 +1,6 @@
-const kafka = require("../config");
-const { pool, initDB } = require("../db");
+require("dotenv").config();
+const kafka = require("../shared/kafka");
+const { commercialDB, initDB } = require("../shared/db");
 
 const consumer = kafka.consumer({ groupId: "billing-group" });
 const producer = kafka.producer();
@@ -9,25 +10,28 @@ async function start() {
   await consumer.connect();
   await producer.connect();
 
-  await consumer.subscribe({ topic: "orders", fromBeginning: true });
+  await consumer.subscribe({ topic: "orders", fromBeginning: false });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
-      const order = JSON.parse(message.value.toString());
+      const evt = JSON.parse(message.value.toString());
 
-      await pool.query(
-        "INSERT INTO payments (order_id, status) VALUES ($1, $2)",
-        [order.orderId, "PAID"]
-      );
+      // Idempotencia: UNIQUE(order_id)
+      try {
+        await commercialDB.query(
+          "INSERT INTO payments (order_id, status) VALUES ($1, $2)",
+          [evt.orderId, "PAID"]
+        );
+      } catch (e) {
+        // ya existe → ignorar
+        console.log("Pago duplicado ignorado:", evt.orderId);
+      }
 
-      const payment = {
-        orderId: order.orderId,
-        status: "PAID",
-      };
+      const paymentEvt = { orderId: evt.orderId, status: "PAID" };
 
       await producer.send({
-        topic: "payment",
-        messages: [{ value: JSON.stringify(payment) }],
+        topic: "payments",
+        messages: [{ value: JSON.stringify(paymentEvt) }],
       });
     },
   });

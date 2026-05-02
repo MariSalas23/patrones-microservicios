@@ -1,16 +1,20 @@
-const kafka = require("../config");
+require("dotenv").config();
+const kafka = require("../shared/kafka");
 
 const consumer = kafka.consumer({ groupId: "notification-group" });
 
 async function start() {
   await consumer.connect();
 
-  await consumer.subscribe({ topic: "shipments", fromBeginning: true });
+  await consumer.subscribe({ topic: "orders", fromBeginning: false });
+  await consumer.subscribe({ topic: "payments", fromBeginning: false });
+  await consumer.subscribe({ topic: "shipments", fromBeginning: false });
 
   await consumer.run({
-    eachMessage: async ({ message }) => {
-      const shipment = JSON.parse(message.value.toString());
-      console.log("Notificación enviada al usuario:", shipment);
+    eachMessage: async ({ topic, message }) => {
+      const evt = JSON.parse(message.value.toString());
+      console.log(`📧 Notificación (${topic}):`, evt);
+      // aquí puedes integrar nodemailer si quieres enviar correo real
     },
   });
 }

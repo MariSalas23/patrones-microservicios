@@ -1,13 +1,14 @@
+require("dotenv").config();
 const { Kafka } = require("kafkajs");
 
 const kafka = new Kafka({
   clientId: "microservices-app",
-  brokers: ["<BOOTSTRAP_SERVER>"], // 👈 de Confluent
+  brokers: [process.env.KAFKA_BROKER],
   ssl: true,
   sasl: {
     mechanism: "plain",
-    username: "<API_KEY>",
-    password: "<API_SECRET>",
+    username: process.env.KAFKA_API_KEY,
+    password: process.env.KAFKA_API_SECRET,
   },
 });
 
