@@ -10,21 +10,19 @@ async function start() {
   await consumer.connect();
   await producer.connect();
 
-  await consumer.subscribe({ topic: "orders", fromBeginning: false });
+  await consumer.subscribe({ topic: "orders" });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
       const evt = JSON.parse(message.value.toString());
 
-      // Idempotencia: UNIQUE(order_id)
       try {
         await commercialDB.query(
           "INSERT INTO payments (order_id, status) VALUES ($1, $2)",
           [evt.orderId, "PAID"]
         );
-      } catch (e) {
-        // ya existe → ignorar
-        console.log("Pago duplicado ignorado:", evt.orderId);
+      } catch {
+        console.log("Pago duplicado ignorado");
       }
 
       const paymentEvt = { orderId: evt.orderId, status: "PAID" };
@@ -33,6 +31,8 @@ async function start() {
         topic: "payments",
         messages: [{ value: JSON.stringify(paymentEvt) }],
       });
+
+      console.log("PaymentProcessed:", paymentEvt);
     },
   });
 }

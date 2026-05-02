@@ -11,7 +11,7 @@ const logisticsDB = new Pool({
 });
 
 async function initDB() {
-  // Comercial: orders + payments
+  // Comercial
   await commercialDB.query(`
     CREATE TABLE IF NOT EXISTS orders (
       id VARCHAR(50) PRIMARY KEY,
@@ -30,7 +30,7 @@ async function initDB() {
     );
   `);
 
-  // Logística: inventory + shipments
+  // Logística
   await logisticsDB.query(`
     CREATE TABLE IF NOT EXISTS inventory (
       product_id VARCHAR(50) PRIMARY KEY,
@@ -47,7 +47,7 @@ async function initDB() {
     );
   `);
 
-  // Seed mínimo (productos + clientes email para Notification)
+  // Seed productos
   await logisticsDB.query(`
     INSERT INTO inventory (product_id, stock)
     VALUES ('prod1', 10), ('prod2', 10)

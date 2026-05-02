@@ -10,21 +10,18 @@ async function start() {
   await consumer.connect();
   await producer.connect();
 
-  await consumer.subscribe({ topic: "payments", fromBeginning: false });
+  await consumer.subscribe({ topic: "payments" });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
       const evt = JSON.parse(message.value.toString());
 
-      // Idempotencia: UNIQUE(order_id)
       try {
         await logisticsDB.query(
           "INSERT INTO shipments (order_id, status) VALUES ($1, $2)",
           [evt.orderId, "CREATED"]
         );
-      } catch (e) {
-        console.log("Envío duplicado ignorado:", evt.orderId);
-      }
+      } catch {}
 
       const shipmentEvt = {
         orderId: evt.orderId,
@@ -35,6 +32,8 @@ async function start() {
         topic: "shipments",
         messages: [{ value: JSON.stringify(shipmentEvt) }],
       });
+
+      console.log("ShipmentCreated:", shipmentEvt);
     },
   });
 }
