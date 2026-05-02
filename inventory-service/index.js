@@ -1,6 +1,5 @@
-require("dotenv").config();
-const kafka = require("./kafka")
-const { logisticsDB, initDB } = require("../shared/db");
+const kafka = require("./kafka");
+const { pool, initDB } = require("./db");
 
 const consumer = kafka.consumer({ groupId: "inventory-group" });
 
@@ -14,18 +13,11 @@ async function start() {
     eachMessage: async ({ message }) => {
       const evt = JSON.parse(message.value.toString());
 
-      const { rows } = await logisticsDB.query(
-        "SELECT stock FROM inventory WHERE product_id = $1",
-        ["prod1"]
+      await pool.query(
+        "UPDATE inventory SET stock = stock - 1 WHERE product_id = 'prod1'"
       );
 
-      if (rows[0].stock > 0) {
-        await logisticsDB.query(
-          "UPDATE inventory SET stock = stock - 1 WHERE product_id = $1",
-          ["prod1"]
-        );
-        console.log("Stock reservado:", evt.orderId);
-      }
+      console.log("Stock actualizado:", evt.orderId);
     },
   });
 }

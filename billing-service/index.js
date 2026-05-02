@@ -1,6 +1,5 @@
-require("dotenv").config();
-const kafka = require("./kafka")
-const { commercialDB, initDB } = require("../shared/db");
+const kafka = require("./kafka");
+const { pool, initDB } = require("./db");
 
 const consumer = kafka.consumer({ groupId: "billing-group" });
 const producer = kafka.producer();
@@ -17,22 +16,20 @@ async function start() {
       const evt = JSON.parse(message.value.toString());
 
       try {
-        await commercialDB.query(
+        await pool.query(
           "INSERT INTO payments (order_id, status) VALUES ($1, $2)",
           [evt.orderId, "PAID"]
         );
       } catch {
-        console.log("Pago duplicado ignorado");
+        console.log("Pago duplicado");
       }
-
-      const paymentEvt = { orderId: evt.orderId, status: "PAID" };
 
       await producer.send({
         topic: "payments",
-        messages: [{ value: JSON.stringify(paymentEvt) }],
+        messages: [{ value: JSON.stringify({ orderId: evt.orderId }) }],
       });
 
-      console.log("PaymentProcessed:", paymentEvt);
+      console.log("PaymentProcessed:", evt.orderId);
     },
   });
 }

@@ -1,4 +1,3 @@
-require("dotenv").config();
 const kafka = require("./kafka");
 
 const consumer = kafka.consumer({ groupId: "notification-group" });
@@ -12,8 +11,7 @@ async function start() {
 
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
-      const evt = JSON.parse(message.value.toString());
-      console.log(`${topic}:`, evt);
+      console.log(`${topic}:`, message.value.toString());
     },
   });
 }

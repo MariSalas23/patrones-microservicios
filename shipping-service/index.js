@@ -1,6 +1,5 @@
-require("dotenv").config();
 const kafka = require("./kafka");
-const { logisticsDB, initDB } = require("../shared/db");
+const { pool, initDB } = require("./db");
 
 const consumer = kafka.consumer({ groupId: "shipping-group" });
 const producer = kafka.producer();
@@ -17,23 +16,18 @@ async function start() {
       const evt = JSON.parse(message.value.toString());
 
       try {
-        await logisticsDB.query(
+        await pool.query(
           "INSERT INTO shipments (order_id, status) VALUES ($1, $2)",
           [evt.orderId, "CREATED"]
         );
       } catch {}
 
-      const shipmentEvt = {
-        orderId: evt.orderId,
-        trackingId: "TRK-" + Date.now(),
-      };
-
       await producer.send({
         topic: "shipments",
-        messages: [{ value: JSON.stringify(shipmentEvt) }],
+        messages: [{ value: JSON.stringify({ orderId: evt.orderId }) }],
       });
 
-      console.log("ShipmentCreated:", shipmentEvt);
+      console.log("ShipmentCreated:", evt.orderId);
     },
   });
 }

@@ -1,8 +1,7 @@
-require("dotenv").config();
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-const kafka = require("./kafka")
-const { commercialDB, initDB } = require("../shared/db");
+const kafka = require("./kafka");
+const { pool, initDB } = require("./db");
 
 const app = express();
 app.use(express.json());
@@ -14,27 +13,25 @@ async function start() {
   await producer.connect();
 
   app.post("/orders", async (req, res) => {
-    const { userId, email, items } = req.body;
-
+    const { userId, email } = req.body;
     const orderId = uuidv4();
 
-    await commercialDB.query(
+    await pool.query(
       "INSERT INTO orders (id, user_id, email) VALUES ($1, $2, $3)",
       [orderId, userId, email]
     );
 
-    const event = { orderId, userId, email, items };
-
     await producer.send({
       topic: "orders",
-      messages: [{ value: JSON.stringify(event) }],
+      messages: [{ value: JSON.stringify({ orderId, userId, email }) }],
     });
 
-    console.log("OrderCreated:", event);
+    console.log("OrderCreated:", orderId);
     res.json({ orderId });
   });
 
-  app.listen(3000, () => console.log("Ordering on 3000"));
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log("Ordering on", PORT));
 }
 
 start();
