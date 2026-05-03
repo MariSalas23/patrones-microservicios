@@ -24,6 +24,8 @@ const processed = new Set();
 async function start() {
   await consumer.connect();
 
+  console.log("Notification iniciado");
+
   await consumer.subscribe({ topic: "shipments", fromBeginning: true });
 
   await consumer.run({
@@ -35,14 +37,18 @@ async function start() {
       if (processed.has(evt.eventId)) return;
       processed.add(evt.eventId);
 
+      console.log("Notification informa al usuario:", evt.email);
+
       await sgMail.send({
         to: evt.email,
         from: process.env.EMAIL_USER,
         subject: "Orden completada",
-        text: `Orden ${evt.orderId} completada`,
+        text: `Orden ${evt.orderId} completada`
       });
     },
   });
+
+  app.get("/", (_, res) => res.send("Notification OK"));
 
   app.listen(process.env.PORT || 3000);
 }

@@ -37,6 +37,8 @@ async function start() {
   await consumer.connect();
   await producer.connect();
 
+  console.log("Shipping iniciado");
+
   await consumer.subscribe({ topic: "payments", fromBeginning: true });
 
   await consumer.run({
@@ -44,6 +46,8 @@ async function start() {
       const evt = JSON.parse(message.value.toString());
 
       if (evt.type !== "PaymentProcessed") return;
+
+      console.log("Shipping genera el envío:", evt.orderId);
 
       try {
         await pool.query(
@@ -66,6 +70,8 @@ async function start() {
       });
     },
   });
+
+  app.get("/", (_, res) => res.send("Shipping OK"));
 
   app.listen(process.env.PORT || 3000);
 }

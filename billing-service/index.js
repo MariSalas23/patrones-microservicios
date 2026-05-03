@@ -37,6 +37,8 @@ async function start() {
   await consumer.connect();
   await producer.connect();
 
+  console.log("Billing iniciado");
+
   await consumer.subscribe({ topic: "orders", fromBeginning: true });
 
   await consumer.run({
@@ -44,6 +46,8 @@ async function start() {
       const evt = JSON.parse(message.value.toString());
 
       if (evt.type !== "OrderCreated") return;
+
+      console.log("Billing procesa el pago:", evt.orderId);
 
       try {
         await pool.query(
@@ -55,19 +59,22 @@ async function start() {
         throw err;
       }
 
+      console.log("PaymentProcessed:", evt.orderId);
+
       await producer.send({
         topic: "payments",
         messages: [{
           key: evt.orderId,
           value: JSON.stringify({
             ...evt,
-            eventId: evt.eventId,
             type: "PaymentProcessed"
           }),
         }],
       });
     },
   });
+
+  app.get("/", (_, res) => res.send("Billing OK"));
 
   app.listen(process.env.PORT || 3000);
 }

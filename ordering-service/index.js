@@ -6,9 +6,6 @@ const { Pool } = require("pg");
 const app = express();
 app.use(express.json());
 
-// =====================
-// KAFKA CONFIG
-// =====================
 const kafka = new Kafka({
   clientId: "ordering",
   brokers: [process.env.KAFKA_BROKER],
@@ -22,17 +19,11 @@ const kafka = new Kafka({
 
 const producer = kafka.producer();
 
-// =====================
-// DB CONFIG (COMERCIAL)
-// =====================
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// =====================
-// INIT DB + SEED (NO TOCO TUS DATOS)
-// =====================
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS customers (
@@ -53,20 +44,17 @@ async function initDB() {
 
   await pool.query(`
     INSERT INTO customers (id, email) VALUES
-    ('user1', 'daniel.saavedra.fon@gmail.com'),
-    ('user2', 'mari.masagu@gmail.com')
+    ('user1','daniel.saavedra.fon@gmail.com'),
+    ('user2','mari.masagu@gmail.com')
     ON CONFLICT DO NOTHING;
   `);
-
-  console.log("DB Comercial lista");
 }
 
-// =====================
-// START SERVICE
-// =====================
 async function start() {
   await initDB();
   await producer.connect();
+
+  console.log("Ordering iniciado");
 
   app.post("/orders", async (req, res) => {
     try {
@@ -87,7 +75,7 @@ async function start() {
 
       const email = customer.rows[0].email;
       const orderId = uuidv4();
-      const eventId = uuidv4(); // 🔥 IMPORTANTE
+      const eventId = uuidv4();
 
       await pool.query(
         "INSERT INTO orders (order_id, user_id, product_id, email) VALUES ($1,$2,$3,$4)",
@@ -98,24 +86,22 @@ async function start() {
 
       await producer.send({
         topic: "orders",
-        messages: [
-          {
-            key: orderId, // 🔥 IMPORTANTE
-            value: JSON.stringify({
-              eventId, // 🔥 NUEVO
-              type: "OrderCreated",
-              orderId,
-              userId,
-              productId,
-              email,
-            }),
-          },
-        ],
+        messages: [{
+          key: orderId,
+          value: JSON.stringify({
+            eventId,
+            type: "OrderCreated",
+            orderId,
+            userId,
+            productId,
+            email
+          }),
+        }],
       });
 
       res.json({ orderId });
-    } catch (error) {
-      console.error("Error:", error.message);
+    } catch (err) {
+      console.error("Ordering error:", err.message);
       res.status(500).json({ error: "Error interno" });
     }
   });

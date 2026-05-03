@@ -22,9 +22,6 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// =====================
-// INIT DB (NO TOCO TUS PRODUCTOS)
-// =====================
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS products (
@@ -42,28 +39,25 @@ async function initDB() {
 
   await pool.query(`
     INSERT INTO products (id, name, stock) VALUES
-    ('prod1', 'Laptop', 10),
-    ('prod2', 'Mouse', 25),
-    ('prod3', 'Teclado', 15),
-    ('prod4', 'Monitor', 8),
-    ('prod5', 'Audifonos', 20),
-    ('prod6', 'Webcam', 12),
-    ('prod7', 'Disco SSD', 18),
-    ('prod8', 'Memoria RAM', 30),
-    ('prod9', 'Silla Gamer', 5),
-    ('prod10', 'Router WiFi', 14)
+    ('prod1','Laptop',10),
+    ('prod2','Mouse',25),
+    ('prod3','Teclado',15),
+    ('prod4','Monitor',8),
+    ('prod5','Audifonos',20),
+    ('prod6','Webcam',12),
+    ('prod7','Disco SSD',18),
+    ('prod8','Memoria RAM',30),
+    ('prod9','Silla Gamer',5),
+    ('prod10','Router WiFi',14)
     ON CONFLICT DO NOTHING;
   `);
-
-  console.log("DB logística lista");
 }
 
-// =====================
-// START SERVICE
-// =====================
 async function start() {
   await initDB();
   await consumer.connect();
+
+  console.log("Inventory iniciado");
 
   await consumer.subscribe({ topic: "payments", fromBeginning: true });
 
@@ -71,47 +65,35 @@ async function start() {
     eachMessage: async ({ message }) => {
       const evt = JSON.parse(message.value.toString());
 
-      // 🔥 VALIDAR EVENTO
       if (evt.type !== "PaymentProcessed") return;
 
-      // 🔥 IDEMPOTENCIA REAL
       try {
         await pool.query(
           "INSERT INTO processed_events (event_id) VALUES ($1)",
           [evt.eventId]
         );
       } catch {
-        console.log("Evento duplicado ignorado");
         return;
       }
 
-      console.log("Validando stock...");
+      console.log("Inventory valida y reserva stock:", evt.productId);
 
       const result = await pool.query(
         "SELECT stock FROM products WHERE id=$1",
         [evt.productId]
       );
 
-      if (result.rowCount === 0) {
-        console.log("Producto no existe");
-        return;
-      }
-
-      if (result.rows[0].stock <= 0) {
-        console.log("Sin stock");
-        return;
-      }
+      if (result.rowCount === 0 || result.rows[0].stock <= 0) return;
 
       await pool.query(
         "UPDATE products SET stock = stock - 1 WHERE id=$1",
         [evt.productId]
       );
-
-      console.log("Stock reservado:", evt.productId);
     },
   });
 
   app.get("/", (_, res) => res.send("Inventory OK"));
+
   app.listen(process.env.PORT || 3000);
 }
 
