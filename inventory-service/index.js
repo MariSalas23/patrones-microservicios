@@ -5,7 +5,7 @@ const { Pool } = require("pg");
 const app = express();
 
 const kafka = new Kafka({
-  clientId: "inventory-service",
+  clientId: "inventory",
   brokers: [process.env.KAFKA_BROKER],
   ssl: true,
   sasl: {
@@ -25,8 +25,14 @@ const pool = new Pool({
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS inventory (
-      product_id VARCHAR(50) PRIMARY KEY,
+      product_id VARCHAR(50),
       stock INT
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS processed_events (
+      event_id VARCHAR(100) UNIQUE
     );
   `);
 
@@ -35,8 +41,6 @@ async function initDB() {
     VALUES ('prod1', 10)
     ON CONFLICT DO NOTHING;
   `);
-
-  console.log("DB ready (inventory)");
 }
 
 async function start() {
@@ -49,18 +53,23 @@ async function start() {
     eachMessage: async ({ message }) => {
       const evt = JSON.parse(message.value.toString());
 
+      try {
+        await pool.query(
+          "INSERT INTO processed_events (event_id) VALUES ($1)",
+          [evt.orderId]
+        );
+      } catch {
+        return;
+      }
+
       await pool.query(
         "UPDATE inventory SET stock = stock - 1 WHERE product_id = 'prod1'"
       );
-
-      console.log("InventoryUpdated:", evt.orderId);
     },
   });
 
-  app.get("/", (req, res) => res.send("Inventory OK"));
-
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log("Inventory on", PORT));
+  app.get("/", (_, res) => res.send("Inventory OK"));
+  app.listen(process.env.PORT || 3000);
 }
 
 start();

@@ -1,55 +1,40 @@
 const { Pool } = require("pg");
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL, // NEON COMERCIAL
   ssl: { rejectUnauthorized: false },
 });
 
 async function initDB() {
-  // Comercial
+  // CLIENTES
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id VARCHAR(50) PRIMARY KEY,
+      name VARCHAR(100),
+      email VARCHAR(150)
+    );
+  `);
+
+  // ÓRDENES
   await pool.query(`
     CREATE TABLE IF NOT EXISTS orders (
-      id VARCHAR(50) PRIMARY KEY,
-      user_id VARCHAR(50),
-      email VARCHAR(100),
+      order_id VARCHAR(100) PRIMARY KEY,
+      user_id VARCHAR(100),
+      product_id VARCHAR(100),
+      email VARCHAR(150),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
+  // SEED CLIENTES
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS payments (
-      id SERIAL PRIMARY KEY,
-      order_id VARCHAR(50) UNIQUE,
-      status VARCHAR(20),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // Logística
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS inventory (
-      product_id VARCHAR(50) PRIMARY KEY,
-      stock INT
-    );
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS shipments (
-      id SERIAL PRIMARY KEY,
-      order_id VARCHAR(50) UNIQUE,
-      status VARCHAR(20),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // Seed
-  await pool.query(`
-    INSERT INTO inventory (product_id, stock)
-    VALUES ('prod1', 10)
+    INSERT INTO customers (id, name, email) VALUES
+    ('user1', 'Cliente Profesor', 'daniel.saavedra.fon@gmail.com'),
+    ('user2', 'Cliente Test', 'mari.masagu@gmail.com')
     ON CONFLICT DO NOTHING;
   `);
 
-  console.log("✅ DB lista");
+  console.log("DB comercial (ordering) lista");
 }
 
 module.exports = { pool, initDB };

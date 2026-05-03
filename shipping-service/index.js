@@ -5,7 +5,7 @@ const { Pool } = require("pg");
 const app = express();
 
 const kafka = new Kafka({
-  clientId: "shipping-service",
+  clientId: "shipping",
   brokers: [process.env.KAFKA_BROKER],
   ssl: true,
   sasl: {
@@ -26,13 +26,10 @@ const pool = new Pool({
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS shipments (
-      id SERIAL PRIMARY KEY,
-      order_id VARCHAR(50) UNIQUE,
-      status VARCHAR(20)
+      order_id VARCHAR(100) UNIQUE,
+      status VARCHAR(50)
     );
   `);
-
-  console.log("DB ready (shipping)");
 }
 
 async function start() {
@@ -51,21 +48,19 @@ async function start() {
           "INSERT INTO shipments (order_id, status) VALUES ($1,$2)",
           [evt.orderId, "CREATED"]
         );
-      } catch {}
+      } catch {
+        return;
+      }
 
       await producer.send({
         topic: "shipments",
-        messages: [{ value: JSON.stringify({ orderId: evt.orderId }) }],
+        messages: [{ value: JSON.stringify(evt) }],
       });
-
-      console.log("ShipmentCreated:", evt.orderId);
     },
   });
 
-  app.get("/", (req, res) => res.send("Shipping OK"));
-
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log("Shipping on", PORT));
+  app.get("/", (_, res) => res.send("Shipping OK"));
+  app.listen(process.env.PORT || 3000);
 }
 
 start();

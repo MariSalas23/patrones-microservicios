@@ -5,7 +5,7 @@ const { Pool } = require("pg");
 const app = express();
 
 const kafka = new Kafka({
-  clientId: "billing-service",
+  clientId: "billing",
   brokers: [process.env.KAFKA_BROKER],
   ssl: true,
   sasl: {
@@ -27,11 +27,10 @@ async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS payments (
       id SERIAL PRIMARY KEY,
-      order_id VARCHAR(50) UNIQUE,
-      status VARCHAR(20)
+      order_id VARCHAR(100) UNIQUE,
+      status VARCHAR(50)
     );
   `);
-  console.log("DB ready (billing)");
 }
 
 async function start() {
@@ -51,22 +50,18 @@ async function start() {
           [evt.orderId, "PAID"]
         );
       } catch {
-        console.log("Duplicate payment ignored");
+        return; // idempotencia
       }
 
       await producer.send({
         topic: "payments",
-        messages: [{ value: JSON.stringify({ orderId: evt.orderId }) }],
+        messages: [{ value: JSON.stringify(evt) }],
       });
-
-      console.log("PaymentProcessed:", evt.orderId);
     },
   });
 
-  app.get("/", (req, res) => res.send("Billing OK"));
-
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log("Billing on", PORT));
+  app.get("/", (_, res) => res.send("Billing OK"));
+  app.listen(process.env.PORT || 3000);
 }
 
 start();
