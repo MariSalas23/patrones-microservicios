@@ -16,9 +16,9 @@ Hay cinco microservicios:
 
 Los servicios se comunican mediante Kafka usando los siguientes tópicos:
 
-* `orders`
-* `payments`
-* `shipments`
+* orders
+* payments
+* shipments
 
 Acerca de las bases de datos, se tienen dos:
 
@@ -29,15 +29,18 @@ Acerca de las bases de datos, se tienen dos:
   * Usada por: Inventory y Shipping
   * Contiene: productos y envíos
 
-## 2. Clientes (parametrizados)
+## 2. Clientes
+
+A continuación, se listan los clientes existentes:
 
 | ID    | Email                                                                 |
 | ----- | --------------------------------------------------------------------- |
-| user1 | [daniel.saavedra.fon@gmail.com](mailto:daniel.saavedra.fon@gmail.com) |
-| user2 | [mari.masagu@gmail.com](mailto:mari.masagu@gmail.com)                 |
-
+| user1 | daniel.saavedra.fon@gmail.com |
+| user2 | mari.masagu@gmail.com               |
 
 ## 3. Productos disponibles
+
+Los productos disponibles son los siguientes:
 
 | ID     | Nombre      |
 | ------ | ----------- |
@@ -58,9 +61,9 @@ Acerca de las bases de datos, se tienen dos:
 
 **POST**
 
-**Endpoint: ** `/orders`
+**Endpoint:** `/orders`
 
-**URL completa: ** `https://ordering-service-gbw3.onrender.com/orders`
+**URL completa:** `https://ordering-service-gbw3.onrender.com/orders`
 
 **Body (JSON)**
 
@@ -82,9 +85,55 @@ Shipping genera el envío: <orderId>
 Notification informa al usuario: <email>
 ```
 
-# 5. Ejemplo
+**De no encontrar el correo, es importante tener en cuenta que se debe buscar en Spam**
 
-## 6. Tecnologías usadas
+# 5. Ejemplos
+
+## 5.1. Ejemplo usando el correo del profesor
+
+## 5.1.1. Postman
+
+![Postman](images/postman-micro.jpg)
+
+## 5.1.2. Logs
+
+![Ordering](images/ordering.png)
+
+![Billing](images/billing.png)
+
+![Inventory](images/inventory.png)
+
+![Shipping](images/shipping.png)
+
+![Notification](images/notification.png)
+
+## 5.1.3. Correo
+
+![Correo](images/correo.png)
+
+## 5.2. Ejemplo usando correo personal
+
+## 5.2.1. Postman
+
+![Postman](images/postman-micro.jpg)
+
+## 5.2.2. Logs
+
+![Ordering](images/ordering.png)
+
+![Billing](images/billing.png)
+
+![Inventory](images/inventory.png)
+
+![Shipping](images/shipping.png)
+
+![Notification](images/notification.png)
+
+## 5.2.3. Correo
+
+![Correo](images/correo.png)
+
+# 6. Tecnologías usadas
 
 * Node.js
 * Kafka (Confluent Cloud)
@@ -99,28 +148,33 @@ patrones-microservicios/
 │
 ├── ordering-service/
 │   ├── index.js
-│   ├── package.json
-│   └── .env
+│   ├── db.js
+│   ├── kafka.js
+│   └── package.json
 │
 ├── billing-service/
 │   ├── index.js
-│   ├── package.json
-│   └── .env
+│   ├── db.js
+│   ├── kafka.js
+│   └── package.json
 │
 ├── inventory-service/
 │   ├── index.js
-│   ├── package.json
-│   └── .env
+│   ├── db.js
+│   ├── kafka.js
+│   └── package.json
 │
 ├── shipping-service/
 │   ├── index.js
-│   ├── package.json
-│   └── .env
+│   ├── db.js
+│   ├── kafka.js
+│   └── package.json
 │
 ├── notification-service/
 │   ├── index.js
-│   ├── package.json
-│   └── .env
+│   ├── db.js
+│   ├── kafka.js
+│   └── package.json
 │
 └── README.md
 ```
