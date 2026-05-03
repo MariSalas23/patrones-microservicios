@@ -26,8 +26,7 @@ const pool = new Pool({
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS payments (
-      id SERIAL PRIMARY KEY,
-      order_id VARCHAR(100) UNIQUE,
+      order_id VARCHAR(100) PRIMARY KEY,
       status VARCHAR(50)
     );
   `);
@@ -38,38 +37,38 @@ async function start() {
   await consumer.connect();
   await producer.connect();
 
-  await consumer.subscribe({ topic: "orders" });
+  await consumer.subscribe({ topic: "orders", fromBeginning: true });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
       const evt = JSON.parse(message.value.toString());
 
-      console.log("Procesando pago (consistencia eventual)");
+      if (evt.type !== "OrderCreated") return;
 
       try {
         await pool.query(
-          "INSERT INTO payments VALUES (DEFAULT,$1,$2)",
+          "INSERT INTO payments (order_id, status) VALUES ($1,$2)",
           [evt.orderId, "PAID"]
         );
-      } catch {
-        return;
+      } catch (err) {
+        if (err.code === "23505") return;
+        throw err;
       }
-
-      console.log("PaymentProcessed:", evt.orderId);
 
       await producer.send({
         topic: "payments",
         messages: [{
+          key: evt.orderId,
           value: JSON.stringify({
             ...evt,
+            eventId: evt.eventId,
             type: "PaymentProcessed"
-          })
+          }),
         }],
       });
     },
   });
 
-  app.get("/", (_, res) => res.send("Billing OK"));
   app.listen(process.env.PORT || 3000);
 }
 

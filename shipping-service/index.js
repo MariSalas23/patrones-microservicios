@@ -26,7 +26,7 @@ const pool = new Pool({
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS shipments (
-      order_id VARCHAR(100) UNIQUE,
+      order_id VARCHAR(100) PRIMARY KEY,
       status VARCHAR(50)
     );
   `);
@@ -37,38 +37,36 @@ async function start() {
   await consumer.connect();
   await producer.connect();
 
-  await consumer.subscribe({ topic: "payments" });
+  await consumer.subscribe({ topic: "payments", fromBeginning: true });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
       const evt = JSON.parse(message.value.toString());
 
-      console.log("Validando pago y disponibilidad...");
+      if (evt.type !== "PaymentProcessed") return;
 
       try {
         await pool.query(
-          "INSERT INTO shipments VALUES ($1,$2)",
+          "INSERT INTO shipments (order_id, status) VALUES ($1,$2)",
           [evt.orderId, "CREATED"]
         );
       } catch {
         return;
       }
 
-      console.log("ShipmentCreated:", evt.orderId);
-
       await producer.send({
         topic: "shipments",
         messages: [{
+          key: evt.orderId,
           value: JSON.stringify({
             ...evt,
             type: "ShipmentCreated"
-          })
+          }),
         }],
       });
     },
   });
 
-  app.get("/", (_, res) => res.send("Shipping OK"));
   app.listen(process.env.PORT || 3000);
 }
 

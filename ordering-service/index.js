@@ -31,10 +31,9 @@ const pool = new Pool({
 });
 
 // =====================
-// INIT DB + SEED
+// INIT DB + SEED (NO TOCO TUS DATOS)
 // =====================
 async function initDB() {
-  // Tabla de clientes
   await pool.query(`
     CREATE TABLE IF NOT EXISTS customers (
       id VARCHAR(50) PRIMARY KEY,
@@ -42,7 +41,6 @@ async function initDB() {
     );
   `);
 
-  // Tabla de órdenes
   await pool.query(`
     CREATE TABLE IF NOT EXISTS orders (
       order_id VARCHAR(100) PRIMARY KEY,
@@ -53,7 +51,6 @@ async function initDB() {
     );
   `);
 
-  // Seed clientes (incluye correo del profe)
   await pool.query(`
     INSERT INTO customers (id, email) VALUES
     ('user1', 'daniel.saavedra.fon@gmail.com'),
@@ -71,9 +68,6 @@ async function start() {
   await initDB();
   await producer.connect();
 
-  // =====================
-  // CREAR ORDEN
-  // =====================
   app.post("/orders", async (req, res) => {
     try {
       const { userId, productId } = req.body;
@@ -82,7 +76,6 @@ async function start() {
         return res.status(400).json({ error: "Faltan datos" });
       }
 
-      // 🔹 Buscar cliente (email parametrizado)
       const customer = await pool.query(
         "SELECT * FROM customers WHERE id=$1",
         [userId]
@@ -93,9 +86,8 @@ async function start() {
       }
 
       const email = customer.rows[0].email;
-
-      // 🔹 Crear orden
       const orderId = uuidv4();
+      const eventId = uuidv4(); // 🔥 IMPORTANTE
 
       await pool.query(
         "INSERT INTO orders (order_id, user_id, product_id, email) VALUES ($1,$2,$3,$4)",
@@ -104,12 +96,13 @@ async function start() {
 
       console.log("OrderCreated:", orderId);
 
-      // 🔹 Publicar evento Kafka
       await producer.send({
         topic: "orders",
         messages: [
           {
+            key: orderId, // 🔥 IMPORTANTE
             value: JSON.stringify({
+              eventId, // 🔥 NUEVO
               type: "OrderCreated",
               orderId,
               userId,
@@ -122,20 +115,14 @@ async function start() {
 
       res.json({ orderId });
     } catch (error) {
-      console.error("Error creando orden:", error.message);
+      console.error("Error:", error.message);
       res.status(500).json({ error: "Error interno" });
     }
   });
 
-  // =====================
-  // HEALTH CHECK
-  // =====================
   app.get("/", (_, res) => res.send("Ordering OK"));
 
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () =>
-    console.log(`Ordering corriendo en puerto ${PORT}`)
-  );
+  app.listen(process.env.PORT || 3000);
 }
 
 start();
