@@ -67,6 +67,7 @@ async function start() {
 
       if (evt.type !== "PaymentProcessed") return;
 
+      // IDMPOTENCIA REAL
       try {
         await pool.query(
           "INSERT INTO processed_events (event_id) VALUES ($1)",
@@ -83,7 +84,10 @@ async function start() {
         [evt.productId]
       );
 
-      if (result.rowCount === 0 || result.rows[0].stock <= 0) return;
+      if (result.rowCount === 0 || result.rows[0].stock <= 0) {
+        console.log("Sin stock");
+        return;
+      }
 
       await pool.query(
         "UPDATE products SET stock = stock - 1 WHERE id=$1",
@@ -91,8 +95,6 @@ async function start() {
       );
     },
   });
-
-  app.get("/", (_, res) => res.send("Inventory OK"));
 
   app.listen(process.env.PORT || 3000);
 }

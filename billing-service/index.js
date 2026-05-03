@@ -66,15 +66,13 @@ async function start() {
         messages: [{
           key: evt.orderId,
           value: JSON.stringify({
-            ...evt,
+            ...evt, // mantiene eventId
             type: "PaymentProcessed"
           }),
         }],
       });
     },
   });
-
-  app.get("/", (_, res) => res.send("Billing OK"));
 
   app.listen(process.env.PORT || 3000);
 }
