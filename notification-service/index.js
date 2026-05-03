@@ -21,15 +21,34 @@ const kafka = new Kafka({
 const consumer = kafka.consumer({ groupId: "notification-group" });
 
 // =====================
-// EMAIL CONFIG (GMAIL)
+// EMAIL CONFIG (GMAIL FIXED)
 // =====================
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  requireTLS: true,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // App Password
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+    family: 4, // 🔥 SOLUCIÓN ERROR ENETUNREACH (Render IPv6)
   },
 });
+
+// =====================
+// VERIFY EMAIL CONFIG
+// =====================
+async function verifyEmail() {
+  try {
+    await transporter.verify();
+    console.log("SMTP listo");
+  } catch (error) {
+    console.error("Error SMTP:", error.message);
+  }
+}
 
 // =====================
 // SEND EMAIL FUNCTION
@@ -37,7 +56,7 @@ const transporter = nodemailer.createTransport({
 async function sendEmail(to, subject, text) {
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: `"Microservices App" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       text,
@@ -53,6 +72,8 @@ async function sendEmail(to, subject, text) {
 // START SERVICE
 // =====================
 async function start() {
+  await verifyEmail();
+
   await consumer.connect();
 
   await consumer.subscribe({ topic: "orders" });
@@ -61,25 +82,30 @@ async function start() {
 
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
-      const data = JSON.parse(message.value.toString());
+      try {
+        const data = JSON.parse(message.value.toString());
 
-      console.log("Evento recibido:", topic, data);
+        console.log("Evento recibido:", topic, data);
 
-      // EMAIL DESTINO (del evento o fallback)
-      const email = data.email || "daniel.saavedra.fon@gmail.com";
+        const email = data.email || "daniel.saavedra.fon@gmail.com";
 
-      await sendEmail(
-        email,
-        `Evento: ${topic}`,
-        `Se generó el evento "${topic}" para la orden ${data.orderId}`
-      );
+        await sendEmail(
+          email,
+          `Evento: ${topic}`,
+          `Orden ${data.orderId}\nEvento: ${topic}\n\nSistema de microservicios funcionando correctamente.`
+        );
+      } catch (error) {
+        console.error("Error procesando mensaje:", error.message);
+      }
     },
   });
 
   app.get("/", (req, res) => res.send("Notification OK"));
 
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log("Notification on", PORT));
+  app.listen(PORT, () =>
+    console.log(`Notification corriendo en puerto ${PORT}`)
+  );
 }
 
 start();
