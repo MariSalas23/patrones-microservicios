@@ -93,23 +93,23 @@ Notification informa al usuario: <email>
 
 ## 5.1.1. Postman
 
-![Postman](images/postman-micro.jpg)
+![Postman](images/profe-postman.png)
 
 ## 5.1.2. Logs
 
-![Ordering](images/ordering.png)
+![Ordering](images/profe-ordering.png)
 
-![Billing](images/billing.png)
+![Billing](images/profe-billing.png)
 
-![Inventory](images/inventory.png)
+![Inventory](images/profe-inventory.png)
 
-![Shipping](images/shipping.png)
+![Shipping](images/profe-shipping.png)
 
-![Notification](images/notification.png)
+![Notification](images/profe-notification.png)
 
 ## 5.1.3. Correo
 
-![Correo](images/correo.png)
+![Correo](images/profe-correo.png)
 
 ## 5.2. Ejemplo usando correo personal
 
