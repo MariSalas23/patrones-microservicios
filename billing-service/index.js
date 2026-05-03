@@ -44,18 +44,27 @@ async function start() {
     eachMessage: async ({ message }) => {
       const evt = JSON.parse(message.value.toString());
 
+      console.log("Procesando pago (consistencia eventual)");
+
       try {
         await pool.query(
-          "INSERT INTO payments (order_id, status) VALUES ($1,$2)",
+          "INSERT INTO payments VALUES (DEFAULT,$1,$2)",
           [evt.orderId, "PAID"]
         );
       } catch {
-        return; // idempotencia
+        return;
       }
+
+      console.log("PaymentProcessed:", evt.orderId);
 
       await producer.send({
         topic: "payments",
-        messages: [{ value: JSON.stringify(evt) }],
+        messages: [{
+          value: JSON.stringify({
+            ...evt,
+            type: "PaymentProcessed"
+          })
+        }],
       });
     },
   });

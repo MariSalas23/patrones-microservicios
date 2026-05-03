@@ -24,8 +24,8 @@ const pool = new Pool({
 
 async function initDB() {
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS inventory (
-      product_id VARCHAR(50),
+    CREATE TABLE IF NOT EXISTS products (
+      id VARCHAR(50) PRIMARY KEY,
       stock INT
     );
   `);
@@ -37,8 +37,7 @@ async function initDB() {
   `);
 
   await pool.query(`
-    INSERT INTO inventory (product_id, stock)
-    VALUES ('prod1', 10)
+    INSERT INTO products VALUES ('prod1',10)
     ON CONFLICT DO NOTHING;
   `);
 }
@@ -55,16 +54,21 @@ async function start() {
 
       try {
         await pool.query(
-          "INSERT INTO processed_events (event_id) VALUES ($1)",
+          "INSERT INTO processed_events VALUES ($1)",
           [evt.orderId]
         );
       } catch {
         return;
       }
 
+      console.log("Validando stock...");
+
       await pool.query(
-        "UPDATE inventory SET stock = stock - 1 WHERE product_id = 'prod1'"
+        "UPDATE products SET stock = stock - 1 WHERE id=$1",
+        [evt.productId]
       );
+
+      console.log("Stock reservado:", evt.productId);
     },
   });
 

@@ -43,18 +43,27 @@ async function start() {
     eachMessage: async ({ message }) => {
       const evt = JSON.parse(message.value.toString());
 
+      console.log("Validando pago y disponibilidad...");
+
       try {
         await pool.query(
-          "INSERT INTO shipments (order_id, status) VALUES ($1,$2)",
+          "INSERT INTO shipments VALUES ($1,$2)",
           [evt.orderId, "CREATED"]
         );
       } catch {
         return;
       }
 
+      console.log("ShipmentCreated:", evt.orderId);
+
       await producer.send({
         topic: "shipments",
-        messages: [{ value: JSON.stringify(evt) }],
+        messages: [{
+          value: JSON.stringify({
+            ...evt,
+            type: "ShipmentCreated"
+          })
+        }],
       });
     },
   });

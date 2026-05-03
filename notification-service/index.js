@@ -21,7 +21,7 @@ const kafka = new Kafka({
 const consumer = kafka.consumer({ groupId: "notification-group" });
 
 // =====================
-// EMAIL CONFIG (GMAIL FIXED)
+// EMAIL CONFIG
 // =====================
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -34,12 +34,17 @@ const transporter = nodemailer.createTransport({
   },
   tls: {
     rejectUnauthorized: false,
-    family: 4, // 🔥 SOLUCIÓN ERROR ENETUNREACH (Render IPv6)
+    family: 4,
   },
 });
 
 // =====================
-// VERIFY EMAIL CONFIG
+// IDEMPOTENCIA (en memoria)
+// =====================
+const processed = new Set();
+
+// =====================
+// VERIFY EMAIL
 // =====================
 async function verifyEmail() {
   try {
@@ -51,7 +56,7 @@ async function verifyEmail() {
 }
 
 // =====================
-// SEND EMAIL FUNCTION
+// SEND EMAIL
 // =====================
 async function sendEmail(to, subject, text) {
   try {
@@ -85,15 +90,21 @@ async function start() {
       try {
         const data = JSON.parse(message.value.toString());
 
-        console.log("Evento recibido:", topic, data);
+        console.log("Evento recibido:", data.type, data.orderId);
 
-        const email = data.email || "daniel.saavedra.fon@gmail.com";
+        // 🔥 SOLO ENVIAR EMAIL FINAL (cuando ya hay envío)
+        if (data.type !== "ShipmentCreated") return;
+
+        // 🔥 IDEMPOTENCIA
+        if (processed.has(data.orderId)) return;
+        processed.add(data.orderId);
 
         await sendEmail(
-          email,
-          `Evento: ${topic}`,
-          `Orden ${data.orderId}\nEvento: ${topic}\n\nSistema de microservicios funcionando correctamente.`
+          data.email,
+          "Orden completada",
+          `Tu orden ${data.orderId} fue procesada correctamente y enviada.`
         );
+
       } catch (error) {
         console.error("Error procesando mensaje:", error.message);
       }
