@@ -8,17 +8,23 @@ Sistema distribuido basado en microservicios que implementa un flujo de órdenes
 
 Hay cinco microservicios: 
 
-* **ordering-service:** Gestiona la creación de órdenes y publica el evento `OrderCreated`.
-* **billing-service:** Procesa el pago y emite el evento `PaymentProcessed`.
+* **ordering-service:** Gestiona la creación de órdenes y publica el evento OrderCreated.
+* **billing-service:** Procesa el pago y emite el evento PaymentProcessed.
 * **inventory-service:** Valida disponibilidad y reserva el stock de productos.
 * **shipping-service:** Genera el envío de la orden.
 * **notification-service:** Envía notificaciones por correo electrónico al usuario.
+
+![Microservicios](images/microservicios.png)
 
 Los servicios se comunican mediante Kafka usando los siguientes tópicos:
 
 * orders
 * payments
 * shipments
+
+![Confluent](images/confluent.png)
+
+![Topics](images/topics.png)
 
 Acerca de las bases de datos, se tienen dos:
 
@@ -28,6 +34,12 @@ Acerca de las bases de datos, se tienen dos:
 * **DB Logística**
   * Usada por: Inventory y Shipping
   * Contiene: productos y envíos
+ 
+![Datos](images/datos.png)
+
+Para el manejo del envío de correos, se utiliza SenGrid.
+
+![Correos](images/correos.png)
 
 ## 2. Clientes
 
